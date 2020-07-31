@@ -1,0 +1,6 @@
+framework module Pods_ExFirebaseDB {
+  umbrella header "Pods-ExFirebaseDB-umbrella.h"
+
+  export *
+  module * { export * }
+}

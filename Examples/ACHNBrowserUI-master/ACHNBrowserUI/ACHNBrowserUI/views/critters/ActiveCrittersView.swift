@@ -1,0 +1,109 @@
+//
+//  ActiveCrittersView.swift
+//  ACHNBrowserUI
+//
+//  Created by Thomas Ricouard on 19/04/2020.
+//  Copyright © 2020 Thomas Ricouard. All rights reserved.
+//
+
+import SwiftUI
+import Backend
+
+enum Tab: String, CaseIterable {
+    case fishes = "Fishes"
+    case bugs = "Bugs"
+}
+
+struct ActiveCritterSections: View {
+    @EnvironmentObject private var collection: UserCollection
+    @Binding var selectedTab: Tab
+
+    let activeFishes: [Item]
+    let activeBugs: [Item]
+    
+    func toCatchCritter(critters: [Item]) -> [Item] {
+        critters.filter{ !collection.critters.contains($0) }
+    }
+    
+    func caughtCritters(critters: [Item]) -> [Item] {
+        critters.filter{ collection.critters.contains($0) }
+    }
+    
+    func newThisMonth(critters: [Item]) -> [Item] {
+        critters.filter{ $0.isNewThisMonth() && !collection.critters.contains($0) }
+    }
+    
+    func leavingThisMonth(critters: [Item]) -> [Item] {
+        critters.filter{ $0.leavingThisMonth() && !collection.critters.contains($0) }
+    }
+    
+    private func sectionContent(critter: Item) -> some View {
+        NavigationLink(destination: ItemDetailView(item: critter)) {
+            ItemRowView(displayMode: .large, item: critter)
+        }
+    }
+    
+    private func makeSectionOrPlaceholder(title: String, icon: String, critters: [Item]) -> some View {
+        Section(header: SectionHeaderView(text: title, icon: icon)) {
+            if critters.isEmpty {
+                Text("You caught them all!").font(.body).fontWeight(.bold)
+            } else {
+                ForEach(critters, content: sectionContent)
+            }
+        }
+    }
+    
+    var body: some View {
+        Group {
+            makeSectionOrPlaceholder(title: "New this month",
+                                     icon: "calendar.badge.plus",
+                                     critters: newThisMonth(critters: selectedTab == .fishes ? activeFishes : activeBugs))
+            makeSectionOrPlaceholder(title: "To catch",
+                                     icon: "calendar",
+                                     critters: toCatchCritter(critters: selectedTab == .fishes ? activeFishes : activeBugs))
+            makeSectionOrPlaceholder(title: "Leaving this month",
+                                     icon: "calendar.badge.minus",
+                                     critters: leavingThisMonth(critters: selectedTab == .fishes ? activeFishes : activeBugs))
+            Section(header: SectionHeaderView(text: "Caught",
+                                              icon: "tray.2")) {
+                ForEach(caughtCritters(critters: selectedTab == .fishes ? activeFishes : activeBugs),
+                        content: sectionContent)
+            }
+        }
+    }
+}
+
+struct ActiveCrittersView: View {
+    let activeFishes: [Item]
+    let activeBugs: [Item]
+    
+    @State private var selectedTab = Tab.fishes
+    
+    var body: some View {
+        List {
+            if activeBugs.isEmpty || activeFishes.isEmpty {
+                RowLoadingView(isLoading: .constant(true))
+            } else {
+                Picker(selection: $selectedTab, label: Text("")) {
+                    ForEach(Tab.allCases, id: \.self) { tab in
+                        Text(LocalizedStringKey(tab.rawValue)).tag(tab.rawValue)
+                    }
+                }
+                .pickerStyle(SegmentedPickerStyle())
+                .listRowBackground(Color.acBackground)
+                ActiveCritterSections(selectedTab: $selectedTab,
+                                      activeFishes: activeFishes,
+                                      activeBugs: activeBugs)
+            }
+        }
+        .listStyle(GroupedListStyle())
+        .environment(\.horizontalSizeClass, .regular)
+        .navigationBarTitle("Active Critters")
+    }
+}
+
+struct ActiveCrittersView_Previews: PreviewProvider {
+    static var previews: some View {
+        ActiveCrittersView(activeFishes: [], activeBugs: [])
+    }
+}

@@ -1,0 +1,31 @@
+name: Xcode build
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: macOS-latest
+
+    steps:
+    - uses: actions/checkout@v2
+        
+    - name: Select Xcode
+      run: sudo xcode-select -switch /Applications/Xcode_11.4.app
+
+    - name: Xcode version
+      run: /usr/bin/xcodebuild -version
+
+    - name: Xcode test backend
+      run: |
+        cd ACHNBrowserUI/ACHNBrowserUI/packages/Backend/
+        swift test
+
+    - name: Xcode test UI
+      run: |
+        cd ACHNBrowserUI/ACHNBrowserUI/packages/UI/
+        swift test
+
+    - name: Xcode build iOS App
+      run: |
+        cd ACHNBrowserUI/
+        xcodebuild clean build -scheme ACHNBrowserUI -destination 'platform=iOS Simulator,name=iPhone 11,OS=13.4'
